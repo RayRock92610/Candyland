@@ -1,0 +1,19 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Databases
+*.db
+*.sqlite3
+*.sqlite
+# Unless we want to keep the initial targets
+!kessel_RECON.db
+
+# Node
+node_modules/
+.nuxt/
+package-lock.json
+
+# Environment
+.env
