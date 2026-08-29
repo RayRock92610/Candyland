@@ -2,9 +2,7 @@
 import sqlite3, json, requests, os, sys
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
-from urllib3.exceptions import InsecureRequestWarning
 
-requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
 
 class Kessel:
     def __init__(self, project="RECON"):
@@ -30,7 +28,7 @@ class Kessel:
             url = f"https://{target}{p}"
             try:
                 # Use allow_redirects=False to catch the redirect attempt
-                r = requests.get(url, headers=self.headers, timeout=4, verify=False, allow_redirects=False)
+                r = requests.get(url, headers=self.headers, timeout=4, verify=True, allow_redirects=False)
                 
                 if r.status_code == 200 and self.is_truth(r):
                     size = len(r.content)
