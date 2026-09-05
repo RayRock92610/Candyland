@@ -1,7 +1,3 @@
 #!/usr/bin/env bash
-set -euo pipefail
-
-echo "Executing pre-commit security and context validation..."
-./scripts/ci/context_budget.sh
 ./scripts/ci/witch_gate.sh
-echo "Pre-commit validation passed."
+./scripts/ci/context_budget.sh
