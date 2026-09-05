@@ -1,1 +1,12 @@
-{"scanned_files": 0, "vulnerabilities": []}
+{
+  "scanned_files": 3,
+  "vulnerabilities": [
+    {
+      "rule_id": "WH-005",
+      "severity": "CRITICAL",
+      "file": "scripts/ci/witch_hunter_ast.py",
+      "line": 17,
+      "message": "Hardcoded credential detected: JWT Token Leak"
+    }
+  ]
+}
