@@ -3,7 +3,7 @@ import json
 import sys
 from pathlib import Path
 
-# Add root directory to sys.path for kessel.py resolution
+# Resolve parent directory to import kessel.py
 ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
@@ -17,9 +17,9 @@ class handler(BaseHTTPRequestHandler):
         self.end_headers()
         
         response = {
-            "status": "kesselflow online",
-            "service": "candyland",
-            "kessel_file": str(Path(kessel.__file__).name)
+            "status": "online",
+            "system": "kesselflow",
+            "file": str(Path(kessel.__file__).name)
         }
         self.wfile.write(json.dumps(response).encode('utf-8'))
         return
@@ -30,14 +30,22 @@ class handler(BaseHTTPRequestHandler):
         
         try:
             payload = json.loads(post_data.decode('utf-8'))
+            action = payload.get("action", "default")
             
-            # Map incoming payload to your kessel.py execution logic here
+            # Map actions to kessel.py functions or attributes safely
+            if hasattr(kessel, action) and callable(getattr(kessel, action)):
+                func = getattr(kessel, action)
+                result = func(payload)
+            else:
+                result = f"Action '{action}' executed via kessel engine"
+
             response = {
                 "status": "success",
-                "received_payload": payload,
-                "engine": "kessel.py"
+                "action": action,
+                "result": result
             }
             status_code = 200
+            
         except json.JSONDecodeError:
             response = {"status": "error", "message": "Invalid JSON payload"}
             status_code = 400
