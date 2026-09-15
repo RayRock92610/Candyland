@@ -24,18 +24,20 @@ class Kessel:
 
     def audit_node(self, target):
         valid_hits = []
-        for p in self.paths:
-            url = f"https://{target}{p}"
-            try:
-                # Use allow_redirects=False to catch the redirect attempt
-                r = requests.get(url, headers=self.headers, timeout=4, verify=True, allow_redirects=False)
-                
-                if r.status_code == 200 and self.is_truth(r):
-                    size = len(r.content)
-                    print(f"[!!!] VERIFIED FIND: {url} ({size} bytes)")
-                    valid_hits.append((target, p, size))
-            except:
-                pass
+        # ⚡ Bolt: Use requests.Session for connection pooling to speed up TLS handshakes for same-host requests
+        with requests.Session() as session:
+            for p in self.paths:
+                url = f"https://{target}{p}"
+                try:
+                    # Use allow_redirects=False to catch the redirect attempt
+                    r = session.get(url, headers=self.headers, timeout=4, verify=True, allow_redirects=False)
+
+                    if r.status_code == 200 and self.is_truth(r):
+                        size = len(r.content)
+                        print(f"[!!!] VERIFIED FIND: {url} ({size} bytes)")
+                        valid_hits.append((target, p, size))
+                except:
+                    pass
         return valid_hits
 
     def run_audit(self):
