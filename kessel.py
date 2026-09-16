@@ -13,6 +13,13 @@ class Kessel:
 
     def is_truth(self, response):
         """The Truth Gate: Filters out Soft 404s and HTML redirects."""
+        # ⚡ Bolt Optimization: Fast path using Content-Type headers before reading the body content.
+        # This prevents downloading and decoding large HTML payloads.
+        if hasattr(response, 'headers'):
+            content_type = response.headers.get("Content-Type", "")
+            if isinstance(content_type, str) and "text/html" in content_type.lower():
+                return False
+
         content = response.text.lower()
         # If it contains HTML tags, it is a webpage, not a config file.
         if "<!doctype html" in content or "<html" in content or "<body" in content:
@@ -30,13 +37,14 @@ class Kessel:
             for p in self.paths:
                 url = f"https://{target}{p}"
                 try:
-                    # Use allow_redirects=False to catch the redirect attempt
-                    r = session.get(url, headers=self.headers, timeout=4, verify=True, allow_redirects=False)
-
-                    if r.status_code == 200 and self.is_truth(r):
-                        size = len(r.content)
-                        print(f"[!!!] VERIFIED FIND: {url} ({size} bytes)")
-                        valid_hits.append((target, p, size))
+                    # ⚡ Bolt Optimization: Use stream=True with allow_redirects=False to allow
+                    # short-circuiting on headers before downloading the potentially large body.
+                    # Use a context manager to ensure the connection is closed even if an exception occurs.
+                    with session.get(url, headers=self.headers, timeout=4, verify=True, allow_redirects=False, stream=True) as r:
+                        if r.status_code == 200 and self.is_truth(r):
+                            size = len(r.content)
+                            print(f"[!!!] VERIFIED FIND: {url} ({size} bytes)")
+                            valid_hits.append((target, p, size))
                 except:
                     pass
         return valid_hits
