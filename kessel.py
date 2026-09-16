@@ -13,9 +13,11 @@ class Kessel:
 
     def is_truth(self, response):
         """The Truth Gate: Filters out Soft 404s and HTML redirects."""
-        content = response.text.lower()
+        # ⚡ Bolt Optimization: Use response.content (bytes) instead of response.text (str)
+        # to avoid extremely slow charset_normalizer auto-detection on large files with no charset header.
+        content = response.content.lower()
         # If it contains HTML tags, it is a webpage, not a config file.
-        if "<!doctype html" in content or "<html" in content or "<body" in content:
+        if b"<!doctype html" in content or b"<html" in content or b"<body" in content:
             return False
         # If the file is empty or just whitespace
         if not content.strip():
