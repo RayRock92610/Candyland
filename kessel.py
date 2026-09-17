@@ -37,10 +37,10 @@ class Kessel:
             for p in self.paths:
                 url = f"https://{target}{p}"
                 try:
-                    # ⚡ Bolt Optimization: Use stream=True with allow_redirects=False to allow
-                    # short-circuiting on headers before downloading the potentially large body.
-                    # Use a context manager to ensure the connection is closed even if an exception occurs.
-                    with session.get(url, headers=self.headers, timeout=4, verify=True, allow_redirects=False, stream=True) as r:
+                    # ⚡ Bolt Optimization: stream=False allows requests to automatically consume the body
+                    # and return the connection to the pool. Using stream=True without consuming the body
+                    # on 404s drops the connection and defeats Session pooling entirely.
+                    with session.get(url, headers=self.headers, timeout=4, verify=True, allow_redirects=False) as r:
                         if r.status_code == 200 and self.is_truth(r):
                             size = len(r.content)
                             print(f"[!!!] VERIFIED FIND: {url} ({size} bytes)")
