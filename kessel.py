@@ -20,12 +20,16 @@ class Kessel:
             if isinstance(content_type, str) and "text/html" in content_type.lower():
                 return False
 
-        content = response.text.lower()
+        text = response.text
+        # ⚡ Bolt Optimization: Replace `not text.strip()` with `not text or text.isspace()`
+        # and move it before `.lower()` to avoid unnecessary string copies and memory allocations.
+        # If the file is empty or just whitespace
+        if not text or text.isspace():
+            return False
+
+        content = text.lower()
         # If it contains HTML tags, it is a webpage, not a config file.
         if "<!doctype html" in content or "<html" in content or "<body" in content:
-            return False
-        # If the file is empty or just whitespace
-        if not content.strip():
             return False
         return True
 

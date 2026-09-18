@@ -7,3 +7,6 @@
 ## $(date +%Y-%m-%d) - [Python requests connection pool dropping on stream=True]
 **Learning:** Using `requests.Session().get(url, stream=True)` will drop the connection and defeat the `urllib3` connection pool if the response body is not fully consumed before the response is closed. For fast multi-path scanning where 404 bodies are ignored, `stream=False` is actually much faster because it automatically consumes the body, allowing TLS connection reuse for subsequent requests to the same target.
 **Action:** When using `requests.Session()` to iterate over multiple paths on the same host, prioritize TLS connection reuse over avoiding small downloads by defaulting to `stream=False`.
+## 2024-05-17 - [Python string whitespace checking in large payloads]
+**Learning:** Using `.strip()` on large strings (common in network scanners handling large bodies) to check for emptiness forces Python to create a complete copy of the string in memory. `isspace()` is much more efficient because it avoids this allocation and stops at the first non-whitespace character (O(1) in the best case).
+**Action:** Use `not text or text.isspace()` instead of `not text.strip()` when evaluating potentially large string payloads, and ensure these fast-path checks happen before any heavy string transformations like `.lower()`.
