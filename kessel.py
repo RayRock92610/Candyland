@@ -20,12 +20,16 @@ class Kessel:
             if isinstance(content_type, str) and "text/html" in content_type.lower():
                 return False
 
-        content = response.text.lower()
-        # If it contains HTML tags, it is a webpage, not a config file.
-        if "<!doctype html" in content or "<html" in content or "<body" in content:
-            return False
+        text = response.text
         # If the file is empty or just whitespace
-        if not content.strip():
+        if not text.strip():
+            return False
+
+        # ⚡ Bolt Optimization: Avoid lowercasing entire unconstrained payloads.
+        # We only need to check the beginning of the file for HTML tags.
+        chunk = text[:8192].lower()
+        # If it contains HTML tags, it is a webpage, not a config file.
+        if "<!doctype html" in chunk or "<html" in chunk or "<body" in chunk:
             return False
         return True
 
