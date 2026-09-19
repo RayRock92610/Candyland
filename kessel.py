@@ -22,7 +22,10 @@ class Kessel:
 
         text = response.text
         # If the file is empty or just whitespace
-        if not text.strip():
+        # ⚡ Bolt Optimization: Replace text.strip() with text.isspace()
+        # text.strip() allocates an expensive complete string copy in memory,
+        # whereas text.isspace() short-circuits and avoids expensive memory allocation.
+        if not text or text.isspace():
             return False
 
         # ⚡ Bolt Optimization: Avoid lowercasing entire unconstrained payloads.
