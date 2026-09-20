@@ -10,3 +10,6 @@
 ## 2024-06-25 - Avoid lowercasing entire unconstrained payloads in Recon Tools
 **Learning:** Lowercasing entire `response.text` payloads in reconnaissance tools (like `kessel.py`) is a significant performance anti-pattern. If a remote server returns a massive configuration file (e.g. 10MB+) without a `Content-Type: text/html` header, calling `.lower()` on the entire string uses substantial memory and CPU time (O(N)), completely unnecessarily.
 **Action:** When searching for specific HTML tags (like `<!doctype html>`) in potentially unconstrained payloads to filter out soft 404s, always use prefix-checking. Slice the first few kilobytes (e.g. `response.text[:8192]`) and only call `.lower()` on that small chunk. This reduces the time complexity from O(N) to O(1) for this operation.
+## $(date +%Y-%m-%d) - [SQLite Performance in Recon Database]
+**Learning:** In the `kessel.py` script, running `SELECT target FROM recon WHERE status_code=200` without an index causes a full table scan. This can become a performance bottleneck when the `recon` table grows large with target data.
+**Action:** Always ensure an index is present for frequently filtered columns in SQLite databases. Adding `CREATE INDEX IF NOT EXISTS idx_recon_status_code ON recon(status_code)` turned an O(N) lookup into an O(log N) lookup, significantly improving query times.

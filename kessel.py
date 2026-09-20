@@ -59,6 +59,10 @@ class Kessel:
 
     def run_audit(self):
         with sqlite3.connect(self.db_path) as conn:
+            # ⚡ Bolt Optimization: Add index to status_code column.
+            # This turns an O(N) full table scan into an O(log N) index lookup, drastically improving query times for large target databases.
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_recon_status_code ON recon(status_code)")
+
             # Only audit targets that were previously found to be 'Live'
             targets = [row[0] for row in conn.execute("SELECT target FROM recon WHERE status_code=200")]
         
