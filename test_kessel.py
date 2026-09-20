@@ -10,27 +10,27 @@ class TestKessel(unittest.TestCase):
 
     def test_is_truth_valid_content(self):
         response = MagicMock()
-        response.text = "[git]\n\tautocrlf = input\n"
+        response.content = b"[git]\n\tautocrlf = input\n"
         self.assertTrue(self.kessel.is_truth(response))
 
     def test_is_truth_doctype_html(self):
         response = MagicMock()
-        response.text = "<!DOCTYPE html><html><body>404 Not Found</body></html>"
+        response.content = b"<!DOCTYPE html><html><body>404 Not Found</body></html>"
         self.assertFalse(self.kessel.is_truth(response))
 
     def test_is_truth_html_tag(self):
         response = MagicMock()
-        response.text = "<html><body>Error</body></html>"
+        response.content = b"<html><body>Error</body></html>"
         self.assertFalse(self.kessel.is_truth(response))
 
     def test_is_truth_body_tag(self):
         response = MagicMock()
-        response.text = "<body>Page missing</body>"
+        response.content = b"<body>Page missing</body>"
         self.assertFalse(self.kessel.is_truth(response))
 
     def test_is_truth_empty_or_whitespace(self):
         response = MagicMock()
-        response.text = "   \n\t  "
+        response.content = b"   \n\t  "
         self.assertFalse(self.kessel.is_truth(response))
 
     def test_kessel_initialization(self):

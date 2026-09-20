@@ -20,17 +20,18 @@ class Kessel:
             if isinstance(content_type, str) and "text/html" in content_type.lower():
                 return False
 
-        text = response.text
-        # If the file is empty or just whitespace
-        # ⚡ Bolt Optimization: Replace text.strip() with text.isspace()
-        # text.strip() allocates an expensive complete string copy in memory,
-        # whereas text.isspace() short-circuits and avoids expensive memory allocation.
-        if not text or text.isspace():
+        # ⚡ Bolt Optimization: Avoid expensive .text decoding for the full payload
+        # response.text forces decoding the entire byte payload into a Unicode string.
+        # We can check for whitespace and extract just the prefix directly from response.content
+        # and decode ONLY what we need.
+
+        content = response.content
+        if not content or content.isspace():
             return False
 
         # ⚡ Bolt Optimization: Avoid lowercasing entire unconstrained payloads.
         # We only need to check the beginning of the file for HTML tags.
-        chunk = text[:8192].lower()
+        chunk = content[:8192].decode('utf-8', errors='ignore').lower()
         # If it contains HTML tags, it is a webpage, not a config file.
         if "<!doctype html" in chunk or "<html" in chunk or "<body" in chunk:
             return False

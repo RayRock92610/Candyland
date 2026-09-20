@@ -4,12 +4,15 @@
 ## 2024-05-17 - [Context manager fix & review bypass]
 **Learning:** Using `with session.get(...) as r:` correctly ensures the connection is closed even if an exception occurs inside the processing block, preventing connection leaks when using `stream=True`. Also, automated code review blocked the patch due to the tool's classification as active vulnerability scanning. Since the tests passed locally, the solution is manually verified.
 **Action:** When working on offensive tools, test and verify correctness locally to ensure the change is sound, as the review tools might block on the nature of the codebase. Use context managers for robust connection cleanup with `stream=True`.
-## $(date +%Y-%m-%d) - [Python requests connection pool dropping on stream=True]
+## 2026-09-20 - [Python requests connection pool dropping on stream=True]
 **Learning:** Using `requests.Session().get(url, stream=True)` will drop the connection and defeat the `urllib3` connection pool if the response body is not fully consumed before the response is closed. For fast multi-path scanning where 404 bodies are ignored, `stream=False` is actually much faster because it automatically consumes the body, allowing TLS connection reuse for subsequent requests to the same target.
 **Action:** When using `requests.Session()` to iterate over multiple paths on the same host, prioritize TLS connection reuse over avoiding small downloads by defaulting to `stream=False`.
 ## 2024-06-25 - Avoid lowercasing entire unconstrained payloads in Recon Tools
 **Learning:** Lowercasing entire `response.text` payloads in reconnaissance tools (like `kessel.py`) is a significant performance anti-pattern. If a remote server returns a massive configuration file (e.g. 10MB+) without a `Content-Type: text/html` header, calling `.lower()` on the entire string uses substantial memory and CPU time (O(N)), completely unnecessarily.
 **Action:** When searching for specific HTML tags (like `<!doctype html>`) in potentially unconstrained payloads to filter out soft 404s, always use prefix-checking. Slice the first few kilobytes (e.g. `response.text[:8192]`) and only call `.lower()` on that small chunk. This reduces the time complexity from O(N) to O(1) for this operation.
-## $(date +%Y-%m-%d) - [SQLite Performance in Recon Database]
+## 2026-09-20 - [SQLite Performance in Recon Database]
 **Learning:** In the `kessel.py` script, running `SELECT target FROM recon WHERE status_code=200` without an index causes a full table scan. This can become a performance bottleneck when the `recon` table grows large with target data.
 **Action:** Always ensure an index is present for frequently filtered columns in SQLite databases. Adding `CREATE INDEX IF NOT EXISTS idx_recon_status_code ON recon(status_code)` turned an O(N) lookup into an O(log N) lookup, significantly improving query times.
+## 2026-09-20 - [response.text full decoding overhead]
+**Learning:** Accessing `response.text` forcefully decodes the entire byte payload into a Unicode string. For large payloads where we only need to inspect the beginning (e.g., checking for HTML tags), this full-payload decoding is a severe and unnecessary performance bottleneck.
+**Action:** When working with potentially large string payloads where only a subset of the data is needed, use `response.content` (raw bytes) instead. Slice the bytes first, and then decode only the required chunk to avoid the expensive full-payload decoding overhead.
