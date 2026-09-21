@@ -39,23 +39,21 @@ class Kessel:
 
     def audit_node(self, target):
         valid_hits = []
-        # ⚡ Bolt Optimization: Use requests.Session() to reuse the underlying TCP connection
-        # across multiple requests to the same target, drastically reducing latency.
-        with requests.Session() as session:
-            for p in self.paths:
-                url = f"https://{target}{p}"
-                try:
-                    # ⚡ Bolt Optimization: Removed stream=True. By allowing requests to fully download
-                    # the response body automatically, the connection is safely returned to the urllib3
-                    # connection pool. This avoids dropping connections on short-circuits and saves significant
-                    # latency by reusing TLS sessions across multiple requests to the same target.
-                    with session.get(url, headers=self.headers, timeout=4, verify=True, allow_redirects=False) as r:
-                        if r.status_code == 200 and self.is_truth(r):
-                            size = len(r.content)
-                            print(f"[!!!] VERIFIED FIND: {url} ({size} bytes)")
-                            valid_hits.append((target, p, size))
-                except:
-                    pass
+        # ⚡ Bolt Optimization: Use a shared requests.Session() to eliminate session instantiation overhead per target.
+        for p in self.paths:
+            url = f"https://{target}{p}"
+            try:
+                # ⚡ Bolt Optimization: Removed stream=True. By allowing requests to fully download
+                # the response body automatically, the connection is safely returned to the urllib3
+                # connection pool. This avoids dropping connections on short-circuits and saves significant
+                # latency by reusing TLS sessions across multiple requests to the same target.
+                with self.session.get(url, headers=self.headers, timeout=4, verify=True, allow_redirects=False) as r:
+                    if r.status_code == 200 and self.is_truth(r):
+                        size = len(r.content)
+                        print(f"[!!!] VERIFIED FIND: {url} ({size} bytes)")
+                        valid_hits.append((target, p, size))
+            except:
+                pass
         return valid_hits
 
     def run_audit(self):
@@ -72,8 +70,10 @@ class Kessel:
             return
 
         print(f"[*] KESSEL::AUDIT -> Validating {len(targets)} targets against the Truth Gate...")
-        with ThreadPoolExecutor(max_workers=10) as executor:
-            executor.map(self.audit_node, targets)
+        with requests.Session() as session:
+            self.session = session
+            with ThreadPoolExecutor(max_workers=10) as executor:
+                executor.map(self.audit_node, targets)
         print("[*] Audit Complete.")
 
 if __name__ == "__main__":
