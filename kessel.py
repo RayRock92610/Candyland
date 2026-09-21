@@ -1,7 +1,14 @@
 #!/usr/bin/env python3
-import sqlite3, json, requests, os, sys
+import sqlite3, json, requests, os, sys, http.cookiejar
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
+
+
+class BlockAllCookies(http.cookiejar.DefaultCookiePolicy):
+    def set_ok(self, cookie, request):
+        return False
+    def return_ok(self, cookie, request):
+        return False
 
 
 class Kessel:
@@ -37,18 +44,18 @@ class Kessel:
             return False
         return True
 
-    def audit_node(self, target):
+    def audit_node(self, target, session=None):
         valid_hits = []
-        # ⚡ Bolt Optimization: Use requests.Session() to reuse the underlying TCP connection
-        # across multiple requests to the same target, drastically reducing latency.
-        with requests.Session() as session:
+
+        local_session = False
+        if session is None:
+            session = requests.Session()
+            local_session = True
+
+        try:
             for p in self.paths:
                 url = f"https://{target}{p}"
                 try:
-                    # ⚡ Bolt Optimization: Removed stream=True. By allowing requests to fully download
-                    # the response body automatically, the connection is safely returned to the urllib3
-                    # connection pool. This avoids dropping connections on short-circuits and saves significant
-                    # latency by reusing TLS sessions across multiple requests to the same target.
                     with session.get(url, headers=self.headers, timeout=4, verify=True, allow_redirects=False) as r:
                         if r.status_code == 200 and self.is_truth(r):
                             size = len(r.content)
@@ -56,6 +63,10 @@ class Kessel:
                             valid_hits.append((target, p, size))
                 except:
                     pass
+        finally:
+            if local_session:
+                session.close()
+
         return valid_hits
 
     def run_audit(self):
@@ -72,8 +83,18 @@ class Kessel:
             return
 
         print(f"[*] KESSEL::AUDIT -> Validating {len(targets)} targets against the Truth Gate...")
-        with ThreadPoolExecutor(max_workers=10) as executor:
-            executor.map(self.audit_node, targets)
+        # ⚡ Bolt Optimization: Reusing a single globally shared requests.Session() across workers is
+        # significantly faster than instantiating a new Session object per target.
+        # We must disable cookie persistence to prevent cross-target state leakage, and increase
+        # the connection pool size to prevent thrashing when hitting many different hosts.
+        with requests.Session() as shared_session:
+            shared_session.cookies.set_policy(BlockAllCookies())
+            adapter = requests.adapters.HTTPAdapter(pool_connections=100, pool_maxsize=100)
+            shared_session.mount("https://", adapter)
+            shared_session.mount("http://", adapter)
+
+            with ThreadPoolExecutor(max_workers=10) as executor:
+                executor.map(lambda t: self.audit_node(t, session=shared_session), targets)
         print("[*] Audit Complete.")
 
 if __name__ == "__main__":
