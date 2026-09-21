@@ -16,3 +16,6 @@
 ## 2026-09-20 - [response.text full decoding overhead]
 **Learning:** Accessing `response.text` forcefully decodes the entire byte payload into a Unicode string. For large payloads where we only need to inspect the beginning (e.g., checking for HTML tags), this full-payload decoding is a severe and unnecessary performance bottleneck.
 **Action:** When working with potentially large string payloads where only a subset of the data is needed, use `response.content` (raw bytes) instead. Slice the bytes first, and then decode only the required chunk to avoid the expensive full-payload decoding overhead.
+## 2024-07-25 - [requests.Session globally shared across ThreadPoolExecutor for multi-target]
+**Learning:** When globally sharing a single `requests.Session()` across threads to scan many *different* targets, we see significant performance gains, but two critical issues arise: 1) state leakage (cookies from Target A are sent to Target B) and 2) connection pool thrashing (`urllib3` only caches 10 hosts by default).
+**Action:** When sharing a session across different hosts in an auditing tool, disable cookies (e.g., using a custom `http.cookiejar.DefaultCookiePolicy` that returns `False` for `set_ok` and `return_ok`) and increase the `requests.adapters.HTTPAdapter` `pool_connections` and `pool_maxsize` parameters to accommodate the concurrent targets.
