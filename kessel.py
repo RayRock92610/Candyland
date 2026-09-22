@@ -38,9 +38,11 @@ class Kessel:
 
         # ⚡ Bolt Optimization: Avoid lowercasing entire unconstrained payloads.
         # We only need to check the beginning of the file for HTML tags.
-        chunk = content[:8192].decode('utf-8', errors='ignore').lower()
+        # Calling .lower() on raw bytes and checking byte literals is significantly faster
+        # than decoding byte chunks into UTF-8 strings.
+        chunk = content[:8192].lower()
         # If it contains HTML tags, it is a webpage, not a config file.
-        if "<!doctype html" in chunk or "<html" in chunk or "<body" in chunk:
+        if b"<!doctype html" in chunk or b"<html" in chunk or b"<body" in chunk:
             return False
         return True
 
