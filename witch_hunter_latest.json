@@ -1,0 +1,13 @@
+{
+  "findings": [
+    {
+      "type": "IDOR",
+      "file": "api/users.py",
+      "severity": "HIGH",
+      "details": "Some details \n with \"quotes\" and \\ backslashes"
+    },
+    {
+      "file": "missing_type.py"
+    }
+  ]
+}
