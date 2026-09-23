@@ -22,3 +22,7 @@
 ## 2026-09-22 - [Avoid .decode() on raw response bytes for substring searches]
 **Learning:** In Python, decoding raw byte chunks into UTF-8 strings using `.decode('utf-8', errors='ignore')` is computationally expensive, particularly when the bytes contain invalid UTF-8 sequences. For performance-critical substring searches (e.g., checking for HTML tags to filter out Soft 404s), this introduces significant overhead.
 **Action:** When performing substring searches in data streams or payloads for specific ASCII sequences (like HTML tags), call `.lower()` directly on raw bytes and compare against byte literals (e.g., `b'<html'`). This is significantly faster than decoding byte chunks into UTF-8 strings.
+
+## 2024-10-25 - [Bash while loop subprocess bottleneck and jq @tsv escaping]
+**Learning:** In shell scripts, spawning subprocesses like `jq` inside a `while` loop creates a severe O(N) performance bottleneck. Additionally, when extracting raw fields alongside stringified JSON (`tojson`), using `jq`'s `@tsv` formatter double-escapes backslashes, corrupting valid JSON payloads.
+**Action:** Batch JSON field extraction using a single upstream `jq` command. Use string interpolation (e.g., `jq -r '"\(.field)\t\(tojson)"'`) to output tab-separated values securely, and read them using `while IFS=$'\t' read -r ...`.
