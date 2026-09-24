@@ -63,6 +63,8 @@ class Kessel:
                             size = len(r.content)
                             print(f"[!!!] VERIFIED FIND: {url} ({size} bytes)")
                             valid_hits.append((target, p, size))
+                except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+                    break
                 except:
                     pass
         finally:

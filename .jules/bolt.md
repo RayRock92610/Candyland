@@ -25,3 +25,6 @@
 ## 2026-09-23 - [Batching jq extraction in shell scripts]
 **Learning:** Calling `jq` inside a shell `while` loop (e.g., extracting fields one by one) is a massive performance bottleneck because it spawns a new process for each field per iteration (O(N) subprocesses).
 **Action:** When extracting multiple fields from a JSON array into bash variables, batch the extraction using a single `jq` command that outputs tab-separated values. Use `jq -r -c '.[] | "\(.field1)\t\(tojson)"'` and read them efficiently via `while IFS=$'\t' read -r ...`. Warning: ensure JSON strings are serialized securely using `\(tojson)` to avoid corruption of valid JSON data which contain quotes or newlines.
+## 2024-10-24 - [Early loop break on connection timeouts]
+**Learning:** In a multi-path reconnaissance scanner, catching a general exception and proceeding to the next path is a severe performance bottleneck when a host is offline. A single connection timeout (e.g. 4 seconds) will multiply by the number of paths (e.g. 4 paths = 16 seconds) instead of exiting immediately.
+**Action:** Always catch `requests.exceptions.ConnectionError` and `requests.exceptions.Timeout` and `break` the loop rather than continuing, to immediately skip remaining paths on unreachable hosts.
