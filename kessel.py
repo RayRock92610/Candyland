@@ -63,7 +63,12 @@ class Kessel:
                             size = len(r.content)
                             print(f"[!!!] VERIFIED FIND: {url} ({size} bytes)")
                             valid_hits.append((target, p, size))
-                except:
+                except (requests.exceptions.ConnectionError, requests.exceptions.ConnectTimeout):
+                    # ⚡ Bolt Optimization: Break the loop early if the host is offline.
+                    # This prevents compounded timeout delays on unreachable hosts, saving
+                    # significant time when scanning multiple paths on dead targets.
+                    break
+                except Exception:
                     pass
         finally:
             if local_session:
