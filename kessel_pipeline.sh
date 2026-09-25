@@ -154,14 +154,18 @@ dispatch_clive_remediation() {
 
         log_info "Routing [${severity}] ${issue_type} in ${target_file} -> Clive Agent [${agent_persona}]"
         
-        # Dispatch remediation task to Clive runner
+        # ⚡ Bolt Optimization: Parallelize independent clive dispatch commands
+        # Dispatch remediation task to Clive runner in the background
         clive dispatch \
             --persona "${agent_persona}" \
             --severity "${severity}" \
             --target-file "${target_file}" \
             --issue-payload "${finding}" \
-            --auto-branch
+            --auto-branch &
     done
+
+    # Wait for all background dispatch processes to finish before returning
+    wait
 }
 
 # ------------------------------------------------------------------------------
