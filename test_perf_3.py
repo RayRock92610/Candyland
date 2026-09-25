@@ -14,14 +14,22 @@ def test_audit_node_optimized(target, session=None):
         for p in k.paths:
             url = f"https://{target}{p}"
             try:
-                with session.get(url, headers=k.headers, timeout=4, verify=True, allow_redirects=False) as r:
+                with session.get(
+                        url,
+                        headers=k.headers,
+                        timeout=(3.0, 5.0),  # (connect_timeout, read_timeout)
+                        verify=True,
+                        allow_redirects=False
+                    ) as r:
                     if r.status_code == 200 and k.is_truth(r):
                         size = len(r.content)
                         valid_hits.append((target, p, size))
-            except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+            except (requests.exceptions.ConnectionError, requests.exceptions.ConnectTimeout):
                 break
+            except requests.exceptions.RequestException:
+                continue
             except Exception:
-                pass
+                continue
     finally:
         if local_session:
             session.close()

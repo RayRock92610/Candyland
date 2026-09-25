@@ -28,3 +28,6 @@
 ## 2024-10-24 - [Early loop break on connection timeouts]
 **Learning:** In a multi-path reconnaissance scanner, catching a general exception and proceeding to the next path is a severe performance bottleneck when a host is offline. A single connection timeout (e.g. 4 seconds) will multiply by the number of paths (e.g. 4 paths = 16 seconds) instead of exiting immediately.
 **Action:** Always catch `requests.exceptions.ConnectionError` and `requests.exceptions.Timeout` and `break` the loop rather than continuing, to immediately skip remaining paths on unreachable hosts.
+## 2024-10-25 - [Exception scoping in retry loops]
+**Learning:** Placing a try/except block outside a loop when attempting to catch and `break` will result in a SyntaxError because the `except` block is considered outside the loop's scope.
+**Action:** Always scope try/except blocks *inside* the loop if you intend to use loop control statements like `break` or `continue` within the exception handlers.

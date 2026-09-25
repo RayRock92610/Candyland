@@ -58,15 +58,25 @@ class Kessel:
             for p in self.paths:
                 url = f"https://{target}{p}"
                 try:
-                    with session.get(url, headers=self.headers, timeout=4, verify=True, allow_redirects=False) as r:
+                    with session.get(
+                        url,
+                        headers=self.headers,
+                        timeout=(3.0, 5.0),  # (connect_timeout, read_timeout)
+                        verify=True,
+                        allow_redirects=False
+                    ) as r:
                         if r.status_code == 200 and self.is_truth(r):
                             size = len(r.content)
                             print(f"[!!!] VERIFIED FIND: {url} ({size} bytes)")
                             valid_hits.append((target, p, size))
-                except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+                except (requests.exceptions.ConnectionError, requests.exceptions.ConnectTimeout):
+                    # Host is unreachable or connection timed out: break early to save time
                     break
-                except:
-                    pass
+                except requests.exceptions.RequestException:
+                    # Specific path failed or timed out reading response: continue to next path
+                    continue
+                except Exception:
+                    continue
         finally:
             if local_session:
                 session.close()
