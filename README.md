@@ -1,12 +1,16 @@
-Candyland OS: The Developer’s Sweet-Tooth Repair Kit
+# Round Table Orchestration
 
-A modular orchestration suite designed to stabilize, sanitize, and synchronize complex development stacks. Whether it's fixing broken Nuxt engines or patching ReDoS vulnerabilities in transit, Candyland OS ensures your "Tin-Man" processes keep a rhythmic heartbeat.
+Modular multi-node orchestration and consensus service.
 
-Core Features:
+## Architecture
 
-Atomic Reconstructions: Automated recovery from corrupted dependency trees.
+- **Agent Nodes:** Stateless executors handling distributed tasks.
+- **Controller:** Manages state persistence, scheduling, and health probes.
 
-Surgical Patching: On-the-fly overrides for high-severity CVEs.
+## Local Configuration
 
-Termux-Optimized: Native support for Android-based Linux environments.
+Copy the sample environment file to configure your local setup:
 
+```bash
+cp config.example.json config.json
+```
