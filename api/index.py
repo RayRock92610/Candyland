@@ -56,7 +56,9 @@ class handler(BaseHTTPRequestHandler):
             return
 
         try:
-            payload = json.loads(post_bytes.decode('utf-8')) if post_bytes else {}
+            # ⚡ Bolt Optimization: Avoid unnecessary string decoding overhead.
+            # json.loads natively supports byte arrays and decodes them to UTF-8 much faster than manual decoding.
+            payload = json.loads(post_bytes) if post_bytes else {}
             action = payload.get("action", "default")
 
             if hasattr(kessel, action) and callable(getattr(kessel, action)):

@@ -14,3 +14,5 @@ Copy the sample environment file to configure your local setup:
 ```bash
 cp config.example.json config.json
 ```
+
+Ensure node network bindings adhere to internal isolated subnets without hardcoding production addresses in version control.

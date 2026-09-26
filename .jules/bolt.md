@@ -31,3 +31,6 @@
 ## 2024-10-25 - [Exception scoping in retry loops]
 **Learning:** Placing a try/except block outside a loop when attempting to catch and `break` will result in a SyntaxError because the `except` block is considered outside the loop's scope.
 **Action:** Always scope try/except blocks *inside* the loop if you intend to use loop control statements like `break` or `continue` within the exception handlers.
+## 2024-10-25 - [Python requests Timeout loop break optimization]
+**Learning:** Catching the broader `requests.exceptions.Timeout` to break loops early in multi-path scanners is an intentional performance optimization. While `ConnectTimeout` ensures we only skip offline hosts, skipping all timeouts prevents massive delays on consistently slow hosts (e.g. 5 second read timeouts * 4 paths = 20 wasted seconds).
+**Action:** Always catch `requests.exceptions.ConnectionError` and `requests.exceptions.Timeout` to break the retry loop early and save substantial execution time by fast-skipping slow hosts.
