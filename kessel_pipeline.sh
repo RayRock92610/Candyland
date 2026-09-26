@@ -146,13 +146,11 @@ dispatch_clive_remediation() {
 
     log_info "Detected ${vuln_count} security issues. Routing findings through Clive 18-persona engine..."
 
+    # ⚡ Bolt Optimization: Extract properties in a single jq pass.
+    # This avoids spawning three separate jq processes per finding inside the loop, drastically improving performance.
     # Route findings to specific Clive personas based on type, path, and severity
-    jq -c '.findings[]' "${REPORT_FILE}" | while read -r finding; do
-        local issue_type target_file severity agent_persona
-        issue_type=$(echo "${finding}" | jq -r '.type // "UNKNOWN"')
-        target_file=$(echo "${finding}" | jq -r '.file // "UNKNOWN"')
-        severity=$(echo "${finding}" | jq -r '.severity // "INFO"')
-
+    jq -c -r '.findings[] | "\(.type // "UNKNOWN")\t\(.file // "UNKNOWN")\t\(.severity // "INFO")\t\(. | tojson)"' "${REPORT_FILE}" | while IFS=$'\t' read -r issue_type target_file severity finding; do
+        local agent_persona
         agent_persona=$(resolve_clive_persona "${issue_type}" "${target_file}" "${severity}")
 
         log_info "Routing [${severity}] ${issue_type} in ${target_file} -> Clive Agent [${agent_persona}]"
