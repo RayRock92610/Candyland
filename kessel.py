@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
-import sqlite3, json, requests, os, sys
+import sqlite3, json, requests, os, sys, urllib3
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 class Kessel:
@@ -37,7 +39,7 @@ class Kessel:
                         size = len(r.content)
                         print(f"[!!!] VERIFIED FIND: {url} ({size} bytes)")
                         valid_hits.append((target, p, size))
-                except:
+                except (requests.exceptions.RequestException, requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError):
                     pass
         return valid_hits
 

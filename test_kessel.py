@@ -1,6 +1,7 @@
 import unittest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from pathlib import Path
+import requests
 from kessel import Kessel
 
 
@@ -37,6 +38,24 @@ class TestKessel(unittest.TestCase):
         kessel = Kessel("CUSTOM")
         self.assertEqual(kessel.db_path, Path("kessel_CUSTOM.db"))
         self.assertIn("/.git/config", kessel.paths)
+
+    @patch('requests.Session.request')
+    def test_audit_node_connect_timeout(self, mock_request):
+        mock_request.side_effect = requests.exceptions.ConnectTimeout("Timeout")
+        result = self.kessel.audit_node("example.com")
+        self.assertEqual(result, [])
+
+    @patch('requests.Session.request')
+    def test_audit_node_connection_error(self, mock_request):
+        mock_request.side_effect = requests.exceptions.ConnectionError("Connection Error")
+        result = self.kessel.audit_node("example.com")
+        self.assertEqual(result, [])
+
+    @patch('requests.Session.request')
+    def test_audit_node_request_exception(self, mock_request):
+        mock_request.side_effect = requests.exceptions.RequestException("Request Exception")
+        result = self.kessel.audit_node("example.com")
+        self.assertEqual(result, [])
 
 
 if __name__ == "__main__":
