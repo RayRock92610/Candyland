@@ -1,2 +1,5 @@
 requests
 urllib3
+httpx
+pytest
+pytest-asyncio
