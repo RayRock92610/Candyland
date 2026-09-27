@@ -44,6 +44,8 @@ class StateStore:
                     result_json TEXT
                 )
             """)
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_sessions_repo_status ON sessions(repo_name, status)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_sessions_status ON sessions(status)")
             conn.commit()
 
     def get_today_count(self) -> int:

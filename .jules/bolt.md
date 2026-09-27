@@ -34,3 +34,6 @@
 ## 2024-10-25 - [Python requests Timeout loop break optimization]
 **Learning:** Catching the broader `requests.exceptions.Timeout` to break loops early in multi-path scanners is an intentional performance optimization. While `ConnectTimeout` ensures we only skip offline hosts, skipping all timeouts prevents massive delays on consistently slow hosts (e.g. 5 second read timeouts * 4 paths = 20 wasted seconds).
 **Action:** Always catch `requests.exceptions.ConnectionError` and `requests.exceptions.Timeout` to break the retry loop early and save substantial execution time by fast-skipping slow hosts.
+## 2024-10-26 - [SQLite Performance in StateStore]
+**Learning:** In `src/state_store.py`, `is_repo_completed` queries the `sessions` table by `repo_name` and `status`, and `get_active_sessions` queries by `status`. Without indexes, these queries trigger full table scans which becomes a performance bottleneck as the number of tracked sessions grows.
+**Action:** Always add indexes (e.g. `CREATE INDEX IF NOT EXISTS idx_sessions_repo_status ON sessions(repo_name, status)`) on frequently queried columns in SQLite tables to turn O(N) full table scans into O(log N) index lookups.
