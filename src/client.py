@@ -3,6 +3,7 @@ src/client.py - HTTP transport, rate limiting, and session client for the Jules 
 """
 
 import asyncio
+import json
 import logging
 import random
 from typing import Any, Dict, Optional
@@ -78,7 +79,7 @@ class JulesClient:
                 )
 
                 if response.status_code in (200, 201):
-                    return response.json()
+                    return json.loads(response.content)
 
                 if response.status_code == 429:
                     retry_after = response.headers.get("Retry-After")
@@ -105,11 +106,12 @@ class JulesClient:
                     continue
 
                 # Permanent client failure (400, 401, 403, 404)
+                # ⚡ Bolt Optimization: Slicing response.content directly before decoding avoids the massive performance overhead of full-payload decoding via response.text when dealing with large payloads on terminal errors.
                 logger.error(
                     "Permanent error %d on %s: %s",
                     response.status_code,
                     endpoint,
-                    response.text,
+                    response.content[:8192].decode('utf-8', errors='replace'),
                 )
                 return None
 
