@@ -105,11 +105,15 @@ class JulesClient:
                     continue
 
                 # Permanent client failure (400, 401, 403, 404)
+                # ⚡ Bolt Optimization: Avoid full payload decoding on error to save memory/CPU.
+                # response.text forcefully decodes the entire byte payload into a Unicode string.
+                # Using a truncated slice of response.content prevents massive memory spikes on unhandled large error pages.
+                error_body = response.content[:8192].decode('utf-8', errors='replace')
                 logger.error(
                     "Permanent error %d on %s: %s",
                     response.status_code,
                     endpoint,
-                    response.text,
+                    error_body,
                 )
                 return None
 
