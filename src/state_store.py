@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 import json
 import logging
 import sqlite3
+import threading
 from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger("jules_state_store")
@@ -15,16 +16,19 @@ logger = logging.getLogger("jules_state_store")
 class StateStore:
     def __init__(self, db_path: str = "jules_audit.db"):
         self.db_path = db_path
-        self._conn = self._create_connection()
+        self._local = threading.local()
         self._init_db()
 
-    def _create_connection(self) -> sqlite3.Connection:
-        """Creates and returns a connection configured with WAL mode and a busy timeout."""
-        conn = sqlite3.connect(self.db_path, check_same_thread=False)
-        conn.execute("PRAGMA journal_mode = WAL;")
-        conn.execute("PRAGMA busy_timeout = 5000;")
-        conn.execute("PRAGMA foreign_keys = ON;")
-        return conn
+    @property
+    def _conn(self) -> sqlite3.Connection:
+        """Creates and returns a connection configured with WAL mode and a busy timeout per thread."""
+        if not hasattr(self._local, "conn"):
+            conn = sqlite3.connect(self.db_path)
+            conn.execute("PRAGMA journal_mode = WAL;")
+            conn.execute("PRAGMA busy_timeout = 5000;")
+            conn.execute("PRAGMA foreign_keys = ON;")
+            self._local.conn = conn
+        return self._local.conn
 
     def _init_db(self) -> None:
         """Initializes tables for tracking rolling daily limits and session states."""
