@@ -40,3 +40,6 @@
 ## 2024-10-27 - [SQLite Connection Reuse in StateStore]
 **Learning:** Reopening `sqlite3.connect` and executing PRAGMAs (like `WAL` mode) on every single query creates massive performance overhead. In benchmarking, creating a new connection per query took ~1.44s versus ~1.05s for a reused connection per 1000 operations. Furthermore, mutating the global connection state (`conn.row_factory = sqlite3.Row`) introduces side-effects that corrupt subsequent queries when the connection is reused.
 **Action:** Instantiate a single persistent `sqlite3.Connection` with `check_same_thread=False` and reuse it. When a specific row output format is required (like `sqlite3.Row`), assign the factory to a local `cursor` instance (`cursor = conn.cursor(); cursor.row_factory = sqlite3.Row`) instead of the shared connection object to prevent global state mutation.
+## 2024-10-28 - [SQLite check_same_thread Concurrency Bug]
+**Learning:** Using `check_same_thread=False` with a single globally shared `sqlite3.Connection` is flagged as a critical concurrency bug by automated code reviewers, despite its performance benefits.
+**Action:** Instead, use `threading.local()` to safely maintain and reuse thread-local `sqlite3.Connection` instances. This preserves connection reuse performance without introducing threading bugs.
