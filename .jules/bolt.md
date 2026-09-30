@@ -43,3 +43,6 @@
 ## 2024-10-28 - [SQLite check_same_thread Concurrency Bug]
 **Learning:** Using `check_same_thread=False` with a single globally shared `sqlite3.Connection` is flagged as a critical concurrency bug by automated code reviewers, despite its performance benefits.
 **Action:** Instead, use `threading.local()` to safely maintain and reuse thread-local `sqlite3.Connection` instances. This preserves connection reuse performance without introducing threading bugs.
+## 2024-10-31 - [SQLite boolean existence checks missing LIMIT 1]
+**Learning:** When querying SQLite for boolean existence checks (e.g., checking if a row exists with `.fetchone() is not None`), omitting `LIMIT 1` causes SQLite to continue scanning even after finding a match. This becomes a significant bottleneck without indexes, and even with indexes, it adds unnecessary overhead.
+**Action:** Always append `LIMIT 1` to SQL queries used for existence checks to optimize performance by short-circuiting the scan once a match is found.

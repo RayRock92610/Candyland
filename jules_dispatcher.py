@@ -54,6 +54,9 @@ class StateStore:
                     result_json TEXT
                 )
             """)
+            # ⚡ Bolt Optimization: Added index on repo_name and status to avoid full table scans during existence checks
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_sessions_repo_status ON sessions(repo_name, status)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_sessions_status ON sessions(status)")
             conn.commit()
 
     def get_today_count(self) -> int:
@@ -109,7 +112,8 @@ class StateStore:
     def is_repo_completed(self, repo_name: str) -> bool:
         with sqlite3.connect(self.db_path) as conn:
             row = conn.execute(
-                "SELECT 1 FROM sessions WHERE repo_name = ? AND status = 'COMPLETED'", (repo_name,)
+                # ⚡ Bolt Optimization: Added LIMIT 1 to short-circuit the database scan once a match is found
+                "SELECT 1 FROM sessions WHERE repo_name = ? AND status = 'COMPLETED' LIMIT 1", (repo_name,)
             ).fetchone()
             return row is not None
 
