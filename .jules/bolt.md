@@ -49,3 +49,9 @@
 ## 2024-11-01 - [SQLite dictionary conversion performance and compatibility]
 **Learning:** Setting `cursor.row_factory = sqlite3.Row` to bypass global state mutation is a Python 3.12+ feature, breaking backward compatibility. Furthermore, manually constructing dictionaries using `zip` and list comprehensions is roughly 2x faster than using `sqlite3.Row` as an intermediary for large row sets.
 **Action:** When needing a specific row output format (like dicts) from SQLite queries, avoid `cursor.row_factory = sqlite3.Row`. Instead, manually construct dictionaries using `[dict(zip([col[0] for col in cursor.description], row)) for row in cursor.fetchall()]`.
+## 2024-11-02 - [Avoid unbounded parallelization of clive dispatch]
+**Learning:** Using `clive dispatch &` inside a while loop creates unbounded background parallelization, which is an explicitly rejected performance approach in shell scripts like `kessel_pipeline.sh`.
+**Action:** Run `clive dispatch` sequentially in shell loops to avoid excessive parallel resource consumption.
+## 2024-11-02 - [SQLite connection creation inside while loops]
+**Learning:** Creating a new `sqlite3.connect()` connection inside a tight `while True:` loop (like in a daemon) creates massive, unnecessary overhead.
+**Action:** Move the `sqlite3.connect()` call outside the loop and reuse the connection to optimize polling performance.
