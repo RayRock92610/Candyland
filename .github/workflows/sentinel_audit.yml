@@ -1,0 +1,25 @@
+name: Sentinel AST Audit
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install Kessel
+        run: |
+          sudo make install PREFIX=/usr/local
+      - name: Run Sentinel Audit
+        run: |
+          for file in $(find . -name '*.py' -not -path './.github/*' -not -path './venv/*' -not -path './.venv/*'); do
+            kessel audit "$file" || exit 1
+          done
