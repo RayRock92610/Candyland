@@ -55,6 +55,3 @@
 ## 2024-11-02 - [SQLite connection creation inside while loops]
 **Learning:** Creating a new `sqlite3.connect()` connection inside a tight `while True:` loop (like in a daemon) creates massive, unnecessary overhead.
 **Action:** Move the `sqlite3.connect()` call outside the loop and reuse the connection to optimize polling performance.
-## 2024-11-03 - [Bounded Clive Dispatch Concurrency & Subshell Execution Safety]
-**Learning**: Unbounded background dispatch caused CPU and memory resource exhaustion; pipe-to-while loops (`jq | while ...`) spawned a subshell, isolating background job control and breaking parent `wait` tracking. In Bash, pipelines run each command in a distinct subshell. PIDs spawned inside the subshell are untracked by the parent shell, causing parent `wait` to return `0` immediately while tasks remain orphaned.
-**Action**: Bound background task execution to 4 concurrent processes. Enforce process substitution `< <(jq ...)` over pipe loops to maintain execution in the current shell context. Guard `wait -n` with `|| true` to prevent `set -e` aborts on expected worker return codes. Always enforce a post-loop drain `wait || true`.
