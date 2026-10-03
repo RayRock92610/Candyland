@@ -172,7 +172,7 @@ dispatch_clive_remediation() {
         fi
     done < <(jq -c -r '.findings[] | "\(.type // "UNKNOWN")	\(.file // "UNKNOWN")	\(.severity // "INFO")	\(tojson)"' "${REPORT_FILE}")
     # Wait for all background dispatch processes to finish before returning
-    wait
+    wait || true
 }
 
 # ------------------------------------------------------------------------------
