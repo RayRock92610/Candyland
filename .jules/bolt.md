@@ -55,3 +55,6 @@
 ## 2024-11-02 - [SQLite connection creation inside while loops]
 **Learning:** Creating a new `sqlite3.connect()` connection inside a tight `while True:` loop (like in a daemon) creates massive, unnecessary overhead.
 **Action:** Move the `sqlite3.connect()` call outside the loop and reuse the connection to optimize polling performance.
+## 2024-11-03 - [Bounded concurrency instead of unbounded or sequential execution for clive dispatch]
+**Learning:** Unbounded background parallelization (e.g., `clive dispatch &`) causes resource exhaustion, but reverting to strictly sequential execution degrades performance severely.
+**Action:** Implement bounded concurrency in shell scripts by tracking active background jobs and using `wait -n`, or by using `xargs -P`, to maintain high throughput without exhausting system resources.
