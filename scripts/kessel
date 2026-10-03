@@ -55,8 +55,8 @@ class SecurityASTVisitor(ast.NodeVisitor):
                     self.issues.append(f"Hardcoded credential in '{target.id}'. Move to os.getenv().")
         self.generic_visit(node)
 
+conn = sqlite3.connect(DB_PATH, timeout=10.0)
 while True:
-    conn = sqlite3.connect(DB_PATH, timeout=10.0)
     with conn:
         cur = conn.cursor()
         cur.execute("SELECT id, sender, payload, retries FROM queue WHERE recipient = 'Sentinel' AND status = 'PENDING' ORDER BY id ASC LIMIT 1")
