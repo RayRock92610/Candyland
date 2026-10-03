@@ -130,6 +130,16 @@ run_witch_hunter_scan() {
     log_info "Scan complete. Findings written to $HOME/.kesselflow/logs/scans/witch_hunter_latest.json"
 }
 
+# Example species AI dispatch integration
+dispatch_zoo_crew_ai() {
+    local species="$1"
+    local payload="$2"
+    python3 jules_dispatcher.py \
+        --species "${species}" \
+        --config gemini_integration_config.json \
+        --input "${payload}"
+}
+
 dispatch_clive_remediation() {
     if [[ ! -f "${REPORT_FILE}" ]]; then
         log_error "Missing report file: ${REPORT_FILE}"
