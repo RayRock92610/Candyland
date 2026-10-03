@@ -148,22 +148,29 @@ dispatch_clive_remediation() {
 
     # Route findings to specific Clive personas based on type, path, and severity
     # ⚡ Bolt Optimization: Batch jq extraction to avoid spawning 3 processes per loop iteration
-    jq -c -r '.findings[] | "\(.type // "UNKNOWN")\t\(.file // "UNKNOWN")\t\(.severity // "INFO")\t\(tojson)"' "${REPORT_FILE}" | while IFS=$'\t' read -r issue_type target_file severity finding; do
+        local active_jobs=0
+    local max_jobs=4
+
+    while IFS=$'	' read -r issue_type target_file severity finding; do
         local agent_persona
         agent_persona=$(resolve_clive_persona "${issue_type}" "${target_file}" "${severity}")
 
         log_info "Routing [${severity}] ${issue_type} in ${target_file} -> Clive Agent [${agent_persona}]"
         
-        # ⚡ Bolt Optimization: Parallelize independent clive dispatch commands
-        # Dispatch remediation task to Clive runner in the background
+        # ⚡ Bolt Optimization: Bounded Concurrency
         clive dispatch \
             --persona "${agent_persona}" \
             --severity "${severity}" \
             --target-file "${target_file}" \
             --issue-payload "${finding}" \
             --auto-branch &
-    done
 
+        ((active_jobs++))
+        if ((active_jobs >= max_jobs)); then
+            wait -n || true
+            ((active_jobs--))
+        fi
+    done < <(jq -c -r '.findings[] | "\(.type // "UNKNOWN")	\(.file // "UNKNOWN")	\(.severity // "INFO")	\(tojson)"' "${REPORT_FILE}")
     # Wait for all background dispatch processes to finish before returning
     wait
 }
