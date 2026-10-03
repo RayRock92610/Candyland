@@ -109,3 +109,13 @@
   - Terminate decoding when the fixed point `current == unquote(current)` is reached.
   - Reject inputs failing to reach canonical form within 5 iterations.
 - **Task ID**: 11838104732185533328
+
+### Bounded Clive Dispatch Concurrency & Subshell Execution Safety
+- **Vulnerability / Operational Failure**: Unbounded background dispatch caused CPU and memory exhaustion; piping to a while loop (`jq | while ...`) spawned a subshell, isolating process control and causing parent `wait` calls to lose track of background job PIDs.
+- **Root Cause**: Bash pipelines execute commands in isolated subshells where spawned child PIDs are inaccessible to parent process tracking, causing premature pipeline advancement and orphaned background jobs.
+- **Enforced Policy**:
+  - Bound concurrent worker processes to 4.
+  - Enforce process substitution `< <(jq ...)` over pipe loops to maintain execution within the parent shell context.
+  - Guard `wait -n` with `|| true` to prevent `set -e` aborts on expected worker return codes.
+  - Always enforce a post-loop drain `wait || true`.
+- **Task ID**: 11838104732185533328
