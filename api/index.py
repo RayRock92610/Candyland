@@ -12,6 +12,8 @@ if str(ROOT_DIR) not in sys.path:
 
 import kessel
 
+_HMAC_KEY: bytes = os.getenv("KESSEL_API_KEY", "").encode('utf-8')
+
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
         api_key_set = os.getenv("KESSEL_API_KEY") is not None
@@ -31,8 +33,6 @@ class handler(BaseHTTPRequestHandler):
         return
 
     def do_POST(self):
-        secret_key = os.getenv("KESSEL_API_KEY", "").encode('utf-8')
-        
         # Read exact raw payload bytes before parsing JSON
         content_length = int(self.headers.get('Content-Length', 0))
         post_bytes = self.rfile.read(content_length) if content_length > 0 else b''
@@ -41,10 +41,10 @@ class handler(BaseHTTPRequestHandler):
         provided_sig = self.headers.get("X-Signature-256", "").strip()
         
         # Compute HMAC SHA256 signature over raw bytes
-        computed_sig = hmac.new(secret_key, post_bytes, hashlib.sha256).hexdigest()
+        computed_sig = hmac.new(_HMAC_KEY, post_bytes, hashlib.sha256).hexdigest()
         
         # Timing-safe signature comparison
-        if not secret_key or not provided_sig or not hmac.compare_digest(provided_sig.lower(), computed_sig.lower()):
+        if not _HMAC_KEY or not provided_sig or not hmac.compare_digest(provided_sig.lower(), computed_sig.lower()):
             self.send_response(401)
             self.send_header('Content-Type', 'application/json')
             self.end_headers()

@@ -55,3 +55,10 @@
 ## 2024-11-02 - [SQLite connection creation inside while loops]
 **Learning:** Creating a new `sqlite3.connect()` connection inside a tight `while True:` loop (like in a daemon) creates massive, unnecessary overhead.
 **Action:** Move the `sqlite3.connect()` call outside the loop and reuse the connection to optimize polling performance.
+## 2024-11-04 - [Pre-computing module-level secrets for serverless APIs]
+**Learning:** In API endpoints (like `api/index.py` in Candyland's serverless environment), calling `os.environ.get()` and `.encode('utf-8')` on every inbound request for HMAC secret key extraction creates unnecessary CPU and memory allocation overhead on the hot path for every warm invocation.
+**Action:** Pre-compute and cache environment secrets (like HMAC keys encoded to bytes) at the module scope level (e.g., `_HMAC_KEY: bytes = os.getenv("KESSEL_API_KEY", "").encode('utf-8')`). This avoids redundant allocations on every inbound request and shaves microsecond overhead on authenticated routes.
+
+## 2024-11-04 - [Optimizing SQLite for rapid state transitions]
+**Learning:** While WAL mode helps with concurrent SQLite writes, executing rapidly changing state transitions (like in `src/state_store.py`) can still hit disk sync stalls and I/O locking latency.
+**Action:** To optimize SQLite connections for environments with rapid state transitions, use `PRAGMA synchronous = NORMAL;` and `PRAGMA temp_store = MEMORY;` in combination with WAL mode. This reduces disk I/O locking and sync stalls during rapid state updates.
