@@ -23,7 +23,7 @@ class StateStore:
     def _conn(self) -> sqlite3.Connection:
         """Creates and returns a connection configured with WAL mode and a busy timeout per thread."""
         if not hasattr(self._local, "conn"):
-            conn = sqlite3.connect(self.db_path)
+            conn = sqlite3.connect(self.db_path, timeout=5.0)
             conn.execute("PRAGMA journal_mode = WAL;")
             conn.execute("PRAGMA synchronous = NORMAL;")
             conn.execute("PRAGMA temp_store = MEMORY;")
@@ -83,14 +83,17 @@ class StateStore:
     ) -> None:
         """Records initial session dispatch."""
         now = datetime.now(timezone.utc).isoformat()
-        with self._conn:
-            self._conn.execute("""
-                INSERT INTO sessions (session_id, repo_name, status, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?)
-                ON CONFLICT(session_id) DO UPDATE SET
-                    status = excluded.status,
-                    updated_at = excluded.updated_at
-            """, (session_id, repo_name, status, now, now))
+        try:
+            with self._conn:
+                self._conn.execute("""
+                    INSERT INTO sessions (session_id, repo_name, status, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?)
+                    ON CONFLICT(session_id) DO UPDATE SET
+                        status = excluded.status,
+                        updated_at = excluded.updated_at
+                """, (session_id, repo_name, status, now, now))
+        except Exception as e:
+            logger.error("State store transition failure: %s", type(e).__name__)
 
     def update_session(
         self,
@@ -101,14 +104,17 @@ class StateStore:
         """Updates session status and serializes final execution/result payloads."""
         now = datetime.now(timezone.utc).isoformat()
         raw_json = json.dumps(result_data) if result_data is not None else None
-        with self._conn:
-            self._conn.execute("""
-                UPDATE sessions
-                SET status = ?,
-                    updated_at = ?,
-                    result_json = COALESCE(?, result_json)
-                WHERE session_id = ?
-            """, (status, now, raw_json, session_id))
+        try:
+            with self._conn:
+                self._conn.execute("""
+                    UPDATE sessions
+                    SET status = ?,
+                        updated_at = ?,
+                        result_json = COALESCE(?, result_json)
+                    WHERE session_id = ?
+                """, (status, now, raw_json, session_id))
+        except Exception as e:
+            logger.error("State store transition failure: %s", type(e).__name__)
 
     def get_active_sessions(self) -> List[Dict[str, str]]:
         """Returns all non-terminal sessions for crash-recovery polling."""

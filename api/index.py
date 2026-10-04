@@ -12,7 +12,13 @@ if str(ROOT_DIR) not in sys.path:
 
 import kessel
 
-_HMAC_KEY: bytes = os.getenv("KESSEL_API_KEY", "").encode('utf-8')
+_HMAC_SECRET: bytes = os.environ.get("HMAC_SECRET", "").encode("utf-8")
+
+def verify_signature(payload_bytes: bytes, signature_header: str) -> bool:
+    if not _HMAC_SECRET or not signature_header:
+        return False
+    expected_signature = hmac.new(_HMAC_SECRET, payload_bytes, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected_signature, signature_header)
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -40,11 +46,8 @@ class handler(BaseHTTPRequestHandler):
         # Extract client signature header
         provided_sig = self.headers.get("X-Signature-256", "").strip()
         
-        # Compute HMAC SHA256 signature over raw bytes
-        computed_sig = hmac.new(_HMAC_KEY, post_bytes, hashlib.sha256).hexdigest()
-        
         # Timing-safe signature comparison
-        if not _HMAC_KEY or not provided_sig or not hmac.compare_digest(provided_sig.lower(), computed_sig.lower()):
+        if not verify_signature(post_bytes, provided_sig.lower()):
             self.send_response(401)
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
