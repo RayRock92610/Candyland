@@ -11,6 +11,11 @@ class Kessel:
         # The paths we are auditing
         self.paths = ["/.git/config", "/.env", "/robots.txt", "/.vscode/settings.json"]
 
+        self.conn = sqlite3.connect(self.db_path, check_same_thread=False)
+        self.conn.execute("PRAGMA journal_mode = WAL;")
+        self.conn.execute("PRAGMA synchronous = NORMAL;")
+        self.conn.execute("PRAGMA busy_timeout = 5000;")
+
     def is_truth(self, response):
         """The Truth Gate: Filters out Soft 404s and HTML redirects."""
         content = response.text.lower()
@@ -34,14 +39,13 @@ class Kessel:
                     size = len(r.content)
                     print(f"[!!!] VERIFIED FIND: {url} ({size} bytes)")
                     valid_hits.append((target, p, size))
-            except:
+            except Exception as err:
                 pass
         return valid_hits
 
     def run_audit(self):
-        with sqlite3.connect(self.db_path) as conn:
-            # Only audit targets that were previously found to be 'Live'
-            targets = [row[0] for row in conn.execute("SELECT target FROM recon WHERE status_code=200")]
+        # Only audit targets that were previously found to be 'Live'
+        targets = [row[0] for row in self.conn.execute("SELECT target FROM recon WHERE status_code=200")]
         
         if not targets:
             print("[!] No 200-OK targets in DB. Run a probe first.")
