@@ -62,3 +62,6 @@
 ## 2024-11-04 - [Optimizing SQLite for rapid state transitions]
 **Learning:** While WAL mode helps with concurrent SQLite writes, executing rapidly changing state transitions (like in `src/state_store.py`) can still hit disk sync stalls and I/O locking latency.
 **Action:** To optimize SQLite connections for environments with rapid state transitions, use `PRAGMA synchronous = NORMAL;` and `PRAGMA temp_store = MEMORY;` in combination with WAL mode. This reduces disk I/O locking and sync stalls during rapid state updates.
+## 2024-11-06 - [SQLite Performance with ORDER BY DESC LIMIT]
+**Learning:** When using `ORDER BY created_at DESC LIMIT 10` on SQLite tables, the database performs a full table scan and sorts all records in memory if there is no index on the sorting column. For large tables, this becomes a severe O(N log N) performance bottleneck.
+**Action:** Always add an index to the column being sorted (e.g. `CREATE INDEX idx_tasks_created_at ON tasks(created_at);`) to turn the query into an O(log N) index scan.
