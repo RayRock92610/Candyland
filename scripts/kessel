@@ -18,6 +18,11 @@ DAEMON_PATH = os.path.join(KESSEL_DIR, "sentinel_daemon.py")
 def init_env():
     os.makedirs(KESSEL_DIR, exist_ok=True)
     with sqlite3.connect(DB_PATH) as conn:
+        # ⚡ Bolt Optimization: Enable WAL, MEMORY temp_store, and NORMAL sync
+        # to drastically reduce disk I/O latency for rapid state transitions in the queue.
+        conn.execute("PRAGMA journal_mode = WAL;")
+        conn.execute("PRAGMA synchronous = NORMAL;")
+        conn.execute("PRAGMA temp_store = MEMORY;")
         conn.execute("PRAGMA busy_timeout = 5000;")
         conn.execute("""
         CREATE TABLE IF NOT EXISTS queue (
@@ -31,6 +36,11 @@ def init_env():
             status TEXT NOT NULL DEFAULT 'PENDING'
         );
         """)
+
+        # ⚡ Bolt Optimization: Add index to rapidly filter queue items by recipient and status,
+        # converting O(N) full table scans into O(log N) index lookups during daemon polling.
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_queue_recipient_status ON queue(recipient, status);")
+
         try:
             conn.execute("ALTER TABLE queue ADD COLUMN retries INTEGER DEFAULT 0;")
         except sqlite3.OperationalError:

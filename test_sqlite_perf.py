@@ -1,21 +1,28 @@
 import sqlite3
 import time
 
-conn = sqlite3.connect(':memory:')
-conn.execute("CREATE TABLE recon (target TEXT, status_code INTEGER)")
-conn.execute("BEGIN TRANSACTION")
-for i in range(100000):
-    conn.execute(f"INSERT INTO recon VALUES ('target{i}', 200)")
-conn.execute("COMMIT")
+conn = sqlite3.connect(":memory:")
+conn.execute("""
+CREATE TABLE queue (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    recipient TEXT NOT NULL,
+    status TEXT NOT NULL
+);
+""")
+
+# Insert 100,000 completed
+conn.execute("BEGIN TRANSACTION;")
+for _ in range(100000):
+    conn.execute("INSERT INTO queue (recipient, status) VALUES ('Sentinel', 'COMPLETED')")
+conn.execute("COMMIT;")
 
 start = time.time()
-targets = [row[0] for row in conn.execute("SELECT target FROM recon WHERE status_code=200")]
-print("Iter:", time.time() - start)
+for _ in range(100):
+    conn.execute("SELECT id FROM queue WHERE recipient = 'Sentinel' AND status = 'PENDING' ORDER BY id ASC LIMIT 1").fetchone()
+print("Without index:", time.time() - start)
 
+conn.execute("CREATE INDEX idx_queue_rec_stat ON queue(recipient, status);")
 start = time.time()
-targets = [row[0] for row in conn.execute("SELECT target FROM recon WHERE status_code=200").fetchall()]
-print("Fetchall:", time.time() - start)
-
-start = time.time()
-targets = [row[0] for row in conn.cursor().execute("SELECT target FROM recon WHERE status_code=200").fetchall()]
-print("Cursor Fetchall:", time.time() - start)
+for _ in range(100):
+    conn.execute("SELECT id FROM queue WHERE recipient = 'Sentinel' AND status = 'PENDING' ORDER BY id ASC LIMIT 1").fetchone()
+print("With index:", time.time() - start)
