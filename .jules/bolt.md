@@ -65,3 +65,6 @@
 ## 2024-11-06 - [SQLite Performance with ORDER BY DESC LIMIT]
 **Learning:** When using `ORDER BY created_at DESC LIMIT 10` on SQLite tables, the database performs a full table scan and sorts all records in memory if there is no index on the sorting column. For large tables, this becomes a severe O(N log N) performance bottleneck.
 **Action:** Always add an index to the column being sorted (e.g. `CREATE INDEX idx_tasks_created_at ON tasks(created_at);`) to turn the query into an O(log N) index scan.
+## 2024-11-08 - [SQLite connection reuse in simple runner scripts]
+**Learning:** Even in simple runner scripts (like `kessel_runner.py`), creating a new `sqlite3.connect()` on every sub-routine invocation (e.g., inside `run_task`) introduces unnecessary overhead from repeatedly establishing connections and executing setup PRAGMAs.
+**Action:** Use a thread-local persistent connection (`threading.local()`) and cache the connection instance to reuse it securely across operations within the same thread. Always include performance-tuning PRAGMAs like `PRAGMA synchronous = NORMAL;` and `PRAGMA temp_store = MEMORY;` when `WAL` mode is enabled to optimize for rapid state transitions.
