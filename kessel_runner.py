@@ -4,12 +4,14 @@ import sys
 import uuid
 import sqlite3
 import subprocess
+import threading
 from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor
 
 class KesselRunner:
     def __init__(self, db_path="kessel_state.db"):
         self.db_path = db_path
+        self._local = threading.local()
         self._ensure_env()
 
     def _ensure_env(self):
@@ -19,12 +21,15 @@ class KesselRunner:
             print("[WARN] Runner is optimized for POSIX environments.")
 
     def get_conn(self):
-        # We need a new connection per thread since we shouldn't use check_same_thread=False generally,
-        # but for this simple runner where we just write from the main thread, it's fine.
-        conn = sqlite3.connect(self.db_path)
-        conn.execute("PRAGMA journal_mode = WAL;")
-        conn.execute("PRAGMA busy_timeout = 5000;")
-        return conn
+        # ⚡ Bolt Optimization: Reuse thread-local connection and optimize for rapid state transitions
+        if not hasattr(self._local, 'conn'):
+            conn = sqlite3.connect(self.db_path)
+            conn.execute("PRAGMA journal_mode = WAL;")
+            conn.execute("PRAGMA synchronous = NORMAL;")
+            conn.execute("PRAGMA temp_store = MEMORY;")
+            conn.execute("PRAGMA busy_timeout = 5000;")
+            self._local.conn = conn
+        return self._local.conn
 
     def run_task(self, command_args):
         task_id = str(uuid.uuid4())
