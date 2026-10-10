@@ -1,0 +1,192 @@
+From 3dcd3b45409497fd133e2c8be837dac1d85e39e1 Mon Sep 17 00:00:00 2001
+From: RayRock92610 <248169391+RayRock92610@users.noreply.github.com>
+Date: Sat, 10 Oct 2026 10:14:38 +0000
+Subject: [PATCH] =?UTF-8?q?=F0=9F=9B=A1=EF=B8=8F=20Sentinel:=20[CRITICAL]?=
+ =?UTF-8?q?=20Fix=20hardcoded=20fallback=20strings=20for=20API=20keys?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- Changed `Variable.get` calls in `dags/gemini_ai_pipeline.py` and `dags/github_repo_monitor.py` to use `default_var=""` instead of `"DEMO_MODE"`.
+- Updated conditional logic to check for falsy token values rather than matching the `"DEMO_MODE"` string.
+- Documented learning in `.jules/sentinel.md` regarding the security risks of hardcoded fallback strings.
+
+Co-authored-by: google-labs-jules[bot] <161369871+google-labs-jules[bot]@users.noreply.github.com>
+---
+ .jules/sentinel.md                  |  5 +++++
+ dags/example_dag_basic.py           |  1 +
+ dags/frankenagent_8_0_kesselflow.py | 11 ++++++++++-
+ dags/frankenagent_8_1_kesselflow.py | 11 ++++++++++-
+ dags/frankenagent_kesselflow.py     | 15 +++++++++++----
+ dags/gemini_ai_pipeline.py          |  7 +++++--
+ dags/github_repo_monitor.py         |  7 +++++--
+ dags/kessel_flow.py                 |  3 ++-
+ 8 files changed, 49 insertions(+), 11 deletions(-)
+
+diff --git a/.jules/sentinel.md b/.jules/sentinel.md
+index e79679d..977c4e8 100644
+--- a/.jules/sentinel.md
++++ b/.jules/sentinel.md
+@@ -21,3 +21,8 @@
+ **Vulnerability:** Found `output=str(e)` in multiple files (`frankenagent_8_0_kesselflow.py`, `frankenagent_8_1_kesselflow.py`, `frankenagent_kesselflow.py`). This allows stack traces and internal exception details (such as local paths, environmental data, or syntax details) to be leaked into the database when a task fails.
+ **Learning:** Returning raw exception strings directly into persistent storage or APIs can inadvertently expose system internals. An attacker could intentionally trigger errors to map the environment.
+ **Prevention:** Catch generic exceptions and log them securely using `logging.error(..., exc_info=True)` while returning a sanitized, generic error message (e.g., "An error occurred during execution.") to the user or database.
++
++## 2026-10-04 - Hardcoded Fallback Strings for Secrets
++**Vulnerability:** Found `Variable.get("GEMINI_API_KEY", default_var="DEMO_MODE")` and `Variable.get("GITHUB_TOKEN", default_var="DEMO_MODE")`. Using string fallbacks like `"DEMO_MODE"` for sensitive tokens can lead to accidental authorization bypasses or leakage if the fallback string is inadvertently used as an actual token or leaked in logs.
++**Learning:** For sensitive variables or tokens retrieved from configuration or environment, a non-empty fallback string may mask a missing configuration and cause unpredictable downstream behavior.
++**Prevention:** Use strictly empty defaults (e.g., `default_var=""`) instead of fallback strings, validating their presence safely within the task.
+diff --git a/dags/example_dag_basic.py b/dags/example_dag_basic.py
+index 037beaf..ed2323d 100644
+--- a/dags/example_dag_basic.py
++++ b/dags/example_dag_basic.py
+@@ -2,6 +2,7 @@
+ Example DAG: Basic ETL Pipeline
+ """
+ from datetime import datetime, timedelta
++
+ from airflow import DAG
+ from airflow.operators.bash import BashOperator
+ from airflow.operators.python import PythonOperator
+diff --git a/dags/frankenagent_8_0_kesselflow.py b/dags/frankenagent_8_0_kesselflow.py
+index 05c63b7..f1377a0 100755
+--- a/dags/frankenagent_8_0_kesselflow.py
++++ b/dags/frankenagent_8_0_kesselflow.py
+@@ -1,6 +1,15 @@
+ #!/usr/bin/env python3
+-import os, sqlite3, logging, time, threading, subprocess, json, shlex, shutil
++import json
++import logging
++import os
++import shlex
++import shutil
++import sqlite3
++import subprocess
++import threading
++import time
+ from datetime import datetime
++
+ import numpy as np
+ import requests
+ from youtube_transcript_api import YouTubeTranscriptApi
+diff --git a/dags/frankenagent_8_1_kesselflow.py b/dags/frankenagent_8_1_kesselflow.py
+index 57cce94..83d58be 100755
+--- a/dags/frankenagent_8_1_kesselflow.py
++++ b/dags/frankenagent_8_1_kesselflow.py
+@@ -1,6 +1,15 @@
+ #!/usr/bin/env python3
+-import os, sqlite3, logging, time, threading, subprocess, json, shlex, shutil
++import json
++import logging
++import os
++import shlex
++import shutil
++import sqlite3
++import subprocess
++import threading
++import time
+ from datetime import datetime
++
+ import numpy as np
+ import requests
+
+diff --git a/dags/frankenagent_kesselflow.py b/dags/frankenagent_kesselflow.py
+index 5f8033a..3efbd9a 100755
+--- a/dags/frankenagent_kesselflow.py
++++ b/dags/frankenagent_kesselflow.py
+@@ -1,10 +1,17 @@
+ #!/usr/bin/env python3
+-import os, sqlite3, logging, subprocess, sys, shlex, shutil
+-from datetime import datetime
+-from threading import Thread, Lock
+ import importlib
+-import numpy as np
+ import json
++import logging
++import os
++import shlex
++import shutil
++import sqlite3
++import subprocess
++import sys
++from datetime import datetime
++from threading import Lock, Thread
++
++import numpy as np
+
+ # --- Auto Module Installer ---
+ modules = ["numpy","faiss-cpu"]
+diff --git a/dags/gemini_ai_pipeline.py b/dags/gemini_ai_pipeline.py
+index 8817419..58037db 100644
+--- a/dags/gemini_ai_pipeline.py
++++ b/dags/gemini_ai_pipeline.py
+@@ -3,9 +3,11 @@ Gemini AI Pipeline
+ Demonstrates Google Gemini API integration
+ """
+ from datetime import datetime
++
+ from airflow.decorators import dag, task
+ from airflow.models import Variable
+
++
+ @dag(
+     dag_id='gemini_ai_pipeline',
+     default_args={'owner': 'airflow', 'retries': 2},
+@@ -28,9 +30,10 @@ def gemini_ai_pipeline():
+     def analyze_with_gemini(content: dict):
+         try:
+             import google.generativeai as genai
+-            api_key = Variable.get("GEMINI_API_KEY", default_var="DEMO_MODE")
++            # 🛡️ Sentinel: Use strictly empty defaults for sensitive tokens instead of fallback strings to prevent accidental leakage or bypasses.
++            api_key = Variable.get("GEMINI_API_KEY", default_var="")
+
+-            if api_key == "DEMO_MODE":
++            if not api_key:
+                 print("⚠️  DEMO MODE: Set GEMINI_API_KEY variable to use real API")
+                 return {'summary': 'Demo summary', 'mode': 'demo'}
+
+diff --git a/dags/github_repo_monitor.py b/dags/github_repo_monitor.py
+index 21e7f33..67023b2 100644
+--- a/dags/github_repo_monitor.py
++++ b/dags/github_repo_monitor.py
+@@ -3,9 +3,11 @@ GitHub Repository Monitor
+ Demonstrates GitHub API integration
+ """
+ from datetime import datetime
++
+ from airflow.decorators import dag, task
+ from airflow.models import Variable
+
++
+ @dag(
+     dag_id='github_repo_monitor',
+     default_args={'owner': 'airflow', 'retries': 2},
+@@ -21,10 +23,11 @@ def github_repo_monitor():
+     def get_repo_info():
+         try:
+             from github import Github
+-            token = Variable.get("GITHUB_TOKEN", default_var="DEMO_MODE")
++            # 🛡️ Sentinel: Use strictly empty defaults for sensitive tokens instead of fallback strings to prevent accidental leakage or bypasses.
++            token = Variable.get("GITHUB_TOKEN", default_var="")
+             repo_name = Variable.get("GITHUB_REPO", default_var="apache/airflow")
+
+-            if token == "DEMO_MODE":
++            if not token:
+                 print("⚠️  DEMO MODE: Set GITHUB_TOKEN variable to use real API")
+                 return {'name': repo_name, 'stars': 34500, 'mode': 'demo'}
+
+diff --git a/dags/kessel_flow.py b/dags/kessel_flow.py
+index cf09f0f..aecc5b5 100644
+--- a/dags/kessel_flow.py
++++ b/dags/kessel_flow.py
+@@ -1,6 +1,7 @@
++from datetime import datetime
++
+ from airflow import DAG
+ from airflow.operators.bash import BashOperator
+-from datetime import datetime
+
+ default_args = {
+     'owner': 'RayRock',
+--
+2.53.0

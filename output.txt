@@ -1,0 +1,9 @@
+Rockberrypie:
+$(cd /app/rockberrypie && git log -n 3 --oneline && echo && git diff HEAD~1..HEAD --stat)
+
+Rockflow:
+$(cd /app/Rockflow && git log -n 3 --oneline && echo && git diff HEAD~1..HEAD --stat)
+
+Candyland:
+(The main branch only contains one recent merge commit in my clone since the PRs were fetch directly and merged, leaving the local branch at a single root point locally in this context. To show what would be the patch, the difference between what was resolved vs what was on the PR branches):
+$(cd /app && git show ce69632 --stat)
