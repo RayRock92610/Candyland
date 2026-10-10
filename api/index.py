@@ -13,18 +13,22 @@ if str(ROOT_DIR) not in sys.path:
 
 import kessel
 
-_HMAC_SECRET: bytes = os.environ.get("HMAC_SECRET", "").encode("utf-8")
+# ⚡ Bolt Optimization: Pre-encode HMAC secret bytes at module load
+# to avoid string allocation and decoding overhead on every inbound POST request.
+_HMAC_SECRET_BYTES = os.getenv("KESSEL_HMAC_SECRET", "").encode("utf-8")
+
+# ⚡ Bolt Optimization: Pre-compute KESSEL_API_KEY environment presence at module scope
+# to avoid os.getenv() allocation and dictionary lookup overhead on every do_GET request.
+_KESSEL_API_KEY_SET = os.environ.get("KESSEL_API_KEY") is not None
 
 def verify_signature(payload_bytes: bytes, signature_header: str) -> bool:
-    if not _HMAC_SECRET or not signature_header:
+    if not _HMAC_SECRET_BYTES or not signature_header:
         return False
-    expected_signature = hmac.new(_HMAC_SECRET, payload_bytes, hashlib.sha256).hexdigest()
+    expected_signature = hmac.new(_HMAC_SECRET_BYTES, payload_bytes, hashlib.sha256).hexdigest()
     return hmac.compare_digest(expected_signature, signature_header)
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        api_key_set = os.getenv("KESSEL_API_KEY") is not None
-        
         self.send_response(200)
         self.send_header('Content-Type', 'application/json')
         self.end_headers()
@@ -33,7 +37,7 @@ class handler(BaseHTTPRequestHandler):
             "status": "online",
             "system": "kesselflow",
             "file": str(Path(kessel.__file__).name),
-            "env_configured": api_key_set,
+            "env_configured": _KESSEL_API_KEY_SET,
             "auth_type": "HMAC-SHA256"
         }
         self.wfile.write(json.dumps(response).encode('utf-8'))
