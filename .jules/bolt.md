@@ -65,3 +65,6 @@
 ## 2024-11-06 - [SQLite Performance with ORDER BY DESC LIMIT]
 **Learning:** When using `ORDER BY created_at DESC LIMIT 10` on SQLite tables, the database performs a full table scan and sorts all records in memory if there is no index on the sorting column. For large tables, this becomes a severe O(N log N) performance bottleneck.
 **Action:** Always add an index to the column being sorted (e.g. `CREATE INDEX idx_tasks_created_at ON tasks(created_at);`) to turn the query into an O(log N) index scan.
+## 2024-11-06 - [Regex pre-compilation inside loops]
+**Learning:** Re-compiling regular expressions using `re.match` inside validation loops (e.g. `validate_report.py`) adds unnecessary overhead for static string patterns, especially when checking many items.
+**Action:** Pre-compile static regex patterns at the module level (e.g. `PATTERN = re.compile(r'...')`) and use the compiled object's `.match()` or `.search()` methods to save repeated compilation overhead during loops.
