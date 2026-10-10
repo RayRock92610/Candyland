@@ -129,3 +129,12 @@
   - Guard `wait -n` with `|| true` to prevent `set -e` aborts on expected worker return codes.
   - Always enforce a post-loop drain `wait || true`.
 - **Task ID**: 11838104732185533328
+
+### Algorithmic Complexity / URL Decoding Denial of Service (DoS)
+- **Vulnerability**: Unbounded `while` loop decoding `deepLink` values via `urllib.parse.unquote` enabled O(N^2) CPU exhaustion DoS through deeply nested `%25` encodings.
+- **Root Cause**: Iterative canonicalization lacked an upper-bound iteration ceiling, and validation relied on string presence checks (`'%' in decoded`) rather than mathematical fixed-point termination (`current == unquote(current)`).
+- **Enforced Policy**:
+  - Bound URL decoding iterations to a strict maximum of 5.
+  - Terminate decoding when the fixed point `current == unquote(current)` is reached.
+  - Reject inputs failing to reach canonical form within 5 iterations.
+- **Task ID**: 11838104732185533328
