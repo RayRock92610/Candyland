@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS audit_events (
 );
 
 CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
+CREATE INDEX IF NOT EXISTS idx_tasks_status_created ON tasks(status, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_agent_runs_status ON agent_runs(status);
 CREATE INDEX IF NOT EXISTS idx_audit_events_type ON audit_events(event_type);
 CREATE INDEX IF NOT EXISTS idx_tasks_created_at ON tasks(created_at);

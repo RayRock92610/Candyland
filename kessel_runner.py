@@ -21,7 +21,7 @@ class KesselRunner:
     def get_conn(self):
         # We need a new connection per thread since we shouldn't use check_same_thread=False generally,
         # but for this simple runner where we just write from the main thread, it's fine.
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, isolation_level="IMMEDIATE")
         conn.execute("PRAGMA journal_mode = WAL;")
         conn.execute("PRAGMA busy_timeout = 5000;")
         return conn
