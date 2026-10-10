@@ -2,6 +2,10 @@ import json
 import re
 import urllib.parse
 
+# Pre-compile regular expressions for performance in validation loops
+ID_PATTERN = re.compile(r'^[a-zA-Z0-9_.-]+\Z')
+GITHUB_URL_PATTERN = re.compile(r'^https://github\.com/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+(?:[/?#][^\s@<>"\'\\]*)?\Z')
+
 
 def validate_deeplink(url: str, max_iterations: int = 5) -> bool:
     if not isinstance(url, str) or not url.strip():
@@ -95,7 +99,7 @@ def validate_report(report_data):
                 return False
 
             # Security: Prevent XSS and injection by strict allow-listing ID characters
-            if not re.match(r'^[a-zA-Z0-9_.-]+\Z', item["id"]):
+            if not ID_PATTERN.match(item["id"]):
                 print(f"Error at index {index}: Field 'id' contains invalid characters.")
                 return False
 
@@ -118,7 +122,7 @@ def validate_report(report_data):
 
             # Security: Use \Z for end of string and avoid loose catch-alls to prevent SSRF via authority manipulation or CRLF
             # Security: Prevent ReDoS by ensuring path components don't overlap with repository names
-            if not re.match(r'^https://github\.com/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+(?:[/?#][^\s@<>"\'\\]*)?\Z', decoded_url):
+            if not GITHUB_URL_PATTERN.match(decoded_url):
                 print(f"Error at index {index}: deepLink must be a valid GitHub URL.")
                 return False
 
