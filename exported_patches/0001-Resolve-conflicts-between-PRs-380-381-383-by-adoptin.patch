@@ -1,0 +1,42 @@
+From 020e4b94bd36c7fab9f9be07ba7fcb4b53b7e122 Mon Sep 17 00:00:00 2001
+From: "google-labs-jules[bot]"
+ <161369871+google-labs-jules[bot]@users.noreply.github.com>
+Date: Sat, 10 Oct 2026 14:19:34 +0000
+Subject: [PATCH] Resolve conflicts between PRs 380, 381, 383 by adopting
+ single fast-path check
+
+---
+ .jules/bolt.md | 4 ++++
+ src/logger.ts  | 5 ++++-
+ 2 files changed, 8 insertions(+), 1 deletion(-)
+
+diff --git a/.jules/bolt.md b/.jules/bolt.md
+index 4b32fdf..09f1c99 100644
+--- a/.jules/bolt.md
++++ b/.jules/bolt.md
+@@ -4,3 +4,7 @@
+ ## 2026-10-10 - Precompile Static Regex in `InputGuardrail`
+ **Learning:** Re-compiling a regex literal inside a hot path `.replace(/.../g, '')` adds overhead, particularly on high-volume evaluation functions like `InputGuardrail.evaluate`.
+ **Action:** Always extract and hoist static `RegExp` literals into class statics or module-scope constants when they are heavily reused across loop iterations or high-frequency invocations, and use index-based `for` loops rather than `for..of` iterators.
++
++## 2026-10-10 - Fast-path Single-Key Sorting in Canonicalizer
++**Learning:** Invoking Array.prototype.sort on empty or single-key objects introduces unnecessary execution overhead in deterministic JSON serialization loops.
++**Action:** Guard `.sort()` with `if (keys.length > 1)` before sorting object key arrays.
+diff --git a/src/logger.ts b/src/logger.ts
+index b8a8ac5..13e5aaf 100644
+--- a/src/logger.ts
++++ b/src/logger.ts
+@@ -83,7 +83,10 @@ export class HashChainedLogger {
+       }
+
+       const rec = obj as Record<string, unknown>;
+-      const sortedKeys = Object.keys(rec).sort();
++      const sortedKeys = Object.keys(rec);
++      if (sortedKeys.length > 1) {
++        sortedKeys.sort();
++      }
+       let result = '{';
+       let first = true;
+       for (let i = 0; i < sortedKeys.length; i++) {
+--
+2.53.0
