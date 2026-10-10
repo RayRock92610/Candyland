@@ -68,3 +68,6 @@
 ## 2024-11-06 - [Regex pre-compilation inside loops]
 **Learning:** Re-compiling regular expressions using `re.match` inside validation loops (e.g. `validate_report.py`) adds unnecessary overhead for static string patterns, especially when checking many items.
 **Action:** Pre-compile static regex patterns at the module level (e.g. `PATTERN = re.compile(r'...')`) and use the compiled object's `.match()` or `.search()` methods to save repeated compilation overhead during loops.
+## 2024-11-06 - [Eliminate temp B-tree sort in queue polling index]
+**Learning:** Indexing only `(recipient, status)` on a table that is frequently polled with `ORDER BY id ASC LIMIT 1` results in `USE TEMP B-TREE FOR ORDER BY`, which introduces unnecessary in-memory and disk sorting overhead during high-frequency polling. Indexing a large payload column (as a covering index) is an anti-pattern that drastically slows down write operations and bloats the database size.
+**Action:** Indexing `(recipient, status, id)` resolves the sorting bottleneck on high-frequency polling queries with zero write penalty compared to indexing large text payloads, allowing the query to be fulfilled purely through an index scan (`SEARCH queue USING INDEX`).
