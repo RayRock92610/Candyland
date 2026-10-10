@@ -37,9 +37,10 @@ def init_env():
         );
         """)
 
-        # ⚡ Bolt Optimization: Add index to rapidly filter queue items by recipient and status,
-        # converting O(N) full table scans into O(log N) index lookups during daemon polling.
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_queue_recipient_status ON queue(recipient, status);")
+        # ⚡ Bolt Optimization: Use a covering index for the daemon polling query.
+        # This converts O(N) full table scans into O(log N) index lookups, and avoids
+        # table row lookups entirely by including all selected columns in the index.
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_queue_covering ON queue(recipient, status, id, timestamp, sender, action, payload, retries);")
 
         try:
             conn.execute("ALTER TABLE queue ADD COLUMN retries INTEGER DEFAULT 0;")
