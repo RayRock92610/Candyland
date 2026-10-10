@@ -4,6 +4,7 @@ import hmac
 import hashlib
 import os
 import sys
+import time
 from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
@@ -43,17 +44,77 @@ class handler(BaseHTTPRequestHandler):
         content_length = int(self.headers.get('Content-Length', 0))
         post_bytes = self.rfile.read(content_length) if content_length > 0 else b''
         
-        # Extract client signature header
-        provided_sig = self.headers.get("X-Signature-256", "").strip()
+        # Extract client signature and timestamp headers
+        provided_sig = self.headers.get("X-Signature-SHA256", "").strip()
+        provided_ts = self.headers.get("X-Request-Timestamp", "").strip()
         
-        # Timing-safe signature comparison
-        if not verify_signature(post_bytes, provided_sig.lower()):
+        if not provided_sig:
             self.send_response(401)
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
             response = {
                 "status": "unauthorized",
-                "message": "Invalid or missing HMAC SHA256 signature"
+                "message": "Missing HMAC SHA256 signature"
+            }
+            self.wfile.write(json.dumps(response).encode('utf-8'))
+            return
+
+        # SHA256 hex digest should be exactly 64 characters
+        if len(provided_sig) != 64 or not all(c in '0123456789abcdefABCDEF' for c in provided_sig):
+            self.send_response(401)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            response = {
+                "status": "unauthorized",
+                "message": "Malformed HMAC SHA256 signature"
+            }
+            self.wfile.write(json.dumps(response).encode('utf-8'))
+            return
+
+        if not provided_ts:
+            self.send_response(401)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            response = {
+                "status": "unauthorized",
+                "message": "Missing X-Request-Timestamp"
+            }
+            self.wfile.write(json.dumps(response).encode('utf-8'))
+            return
+
+        # Validate timestamp drift
+        try:
+            req_ts = float(provided_ts)
+            current_ts = time.time()
+            if abs(current_ts - req_ts) > 300:
+                self.send_response(401)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                response = {
+                    "status": "unauthorized",
+                    "message": "Request timestamp stale"
+                }
+                self.wfile.write(json.dumps(response).encode('utf-8'))
+                return
+        except ValueError:
+            self.send_response(401)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            response = {
+                "status": "unauthorized",
+                "message": "Malformed X-Request-Timestamp"
+            }
+            self.wfile.write(json.dumps(response).encode('utf-8'))
+            return
+
+        # Timing-safe signature comparison
+        if not verify_signature(post_bytes, provided_sig.lower()):
+            self.send_response(403)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            response = {
+                "status": "forbidden",
+                "message": "Invalid HMAC SHA256 signature"
             }
             self.wfile.write(json.dumps(response).encode('utf-8'))
             return
